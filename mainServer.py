@@ -8,21 +8,29 @@ from time import time
 import subprocess
 import Queue
 
-HOST = ''
+sys.setrecursionlimit(100000)
+
+HOST = '10.151.64.24'
 PORT = 8018
 WJUMLAHKONEKSI = 0.3
 WRESPONTIME = 0.5
 
 class connectToServer(threading.Thread):
-  def __init__(self, conn, data):
+  def __init__(self, clientQueue):
     threading.Thread.__init__(self)
-    self.connClient = conn
+    #self.connClient = conn
     self.sockServer = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self.dataClient = data
+    #self.dataClient = data
+    self.clientQueue = clientQueue
+    print str(threading.current_thread())+" terbentuk"
   
   def run(self):
+    print "masuk "+str(threading.current_thread())
     global servers
+    global clientQueue
     
+    self.connClient = clientQueue.get(True)
+    self.dataClient = self.connClient.recv(4096)
     print self.dataClient
     print "selesai print data"
     self.calculateResponTime()
@@ -56,7 +64,9 @@ class connectToServer(threading.Thread):
     #self.sockServer.close()
     servers[self.giliran].setJumlahKoneksi(-1)
     #thread.exit()
-    return
+    #return
+    self.clientQueue.task_done()
+    self.run()
   
   def sendline(self, data):
     print "lala"
@@ -137,6 +147,10 @@ def main():
     servers[indeks] = server(ip, port)
     servers[indeks].start()
     print servers[indeks]
+  for i in range(0,100):
+    worker = connectToServer(clientQueue)
+    worker.setDaemon(True)
+    worker.start()
     
   while 1:
     try:
@@ -146,11 +160,12 @@ def main():
       print 'connected from conn %s ip %s' %(conn, addr)
       print type(conn)
       print type(addr)
-      data = clientQueue.get().recv(4096)
-      beginServer = connectToServer(conn, data)
+      #data = clientQueue.get().recv(4096)
+      #beginServer = connectToServer(conn, data)
       print "lala"
-      beginServer.start()
+      #beginServer.start()
       print "yeye"
+      clientQueue.join()
       
     except:
       sys.exit()
