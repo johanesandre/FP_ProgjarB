@@ -3,6 +3,7 @@ import socket
 import io
 import threading
 import Queue
+import os
 
 sys.setrecursionlimit(100000)
 
@@ -27,7 +28,7 @@ class serverThread(threading.Thread):
   def run(self):
     global clientQueue
     
-    self.conn = clientQueue.get()
+    self.conn = clientQueue.get(True)
     self.client_data = self.conn.recv(1024)
     if not self.client_data:
       self.client_data = "GET /image4 HTTP/1.1"
@@ -39,7 +40,13 @@ class serverThread(threading.Thread):
     
     self.file1 = self.filename[1]      
     self.file2 = self.file1[1:]
-    self.f=open(self.file2+".png",'r+')
+    self.file2+=".png"
+    
+    if os.path.isfile(self.file2):
+      self.f=open(self.file2,'r+')
+    else:
+      self.f=open("not-found.png",'r+')
+      
     self.jpgdata2 = self.f.read()
     self.f.close()
     self.http_response = "\HTTP/1.1 200 OK \n\n%s"%self.jpgdata2
